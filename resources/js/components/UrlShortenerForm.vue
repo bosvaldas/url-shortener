@@ -77,27 +77,26 @@ export default {
             this.inputs.splice(index, 1);
         },
         async submitForm() {
-            this.results = this.inputs.map((u) => {
-                return {longUrl: u.url, shortUrl: '...'};
-            });
-
             const urls = this.inputs.map(i => ({url: i.url}))
 
             try {
                 const response = await axios.post('/api/url-mappings', {urls});
+                this.removeErrors();
+                this.results = response.data.mappings;
             } catch (e) {
                 if (e.response && e.response.data) {
-                    this.updateErrors(e.response.data.errors);
+                    this.setErrors(e.response.data.errors);
                 } else {
                     console.error(e);
                 }
             }
         },
-        updateErrors(errors) {
+        removeErrors() {
             for (const input of this.inputs) {
                 input.errors = [];
             }
-
+        },
+        setErrors(errors) {
             for (const [key, violations] of Object.entries(errors)) {
                 const index = Number(key.match(/\d+/)[0]);
                 this.inputs[index].errors = violations;
