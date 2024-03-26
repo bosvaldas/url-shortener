@@ -4,7 +4,7 @@
         <form @submit.prevent="submitForm">
             <div class="row">
                 <div v-for="(input, index) in inputs" :key="index" class="col-md-6">
-                    <div class="input-group mb-3">
+                    <div class="input-group mt-3">
                         <input type="url" class="form-control" v-model="input.url" placeholder="Enter URL">
                         <div class="input-group-append">
                             <button class="btn btn-outline-danger" type="button" @click="removeInput(index)" :disabled="removeUrlDisabled">
@@ -12,15 +12,20 @@
                             </button>
                         </div>
                     </div>
+                    <ul v-if="input.errors" class="m-0 text-danger">
+                        <li v-for="error in input.errors" class="">{{ error }}</li>
+                    </ul>
                 </div>
             </div>
 
-            <button class="btn btn-primary" type="button" @click="addInput">
-                Add URL
-            </button>
-            <button class="btn btn-success d-block mt-3" type="submit">
-                Submit
-            </button>
+            <div class="mt-3">
+                <button class="btn btn-primary" type="button" @click="addInput">
+                    Add URL
+                </button>
+                <button class="btn btn-success d-block mt-3" type="submit">
+                    Submit
+                </button>
+            </div>
         </form>
 
         <div v-if="results" class="mt-5">
@@ -49,7 +54,9 @@
 export default {
     data() {
         return {
-            inputs: [{ url: '' }],
+            inputs: [
+                { url: 'http://testsafebrowsing.appspot.com/apiv4/ANY_PLATFORM/SOCIAL_ENGINEERING/URL/' }, // Fake unsafe url
+            ],
             results: null,
         };
     },
@@ -69,12 +76,32 @@ export default {
 
             this.inputs.splice(index, 1);
         },
-        submitForm() {
-            console.log(this.inputs);
-
+        async submitForm() {
             this.results = this.inputs.map((u) => {
                 return {longUrl: u.url, shortUrl: '...'};
-            })
+            });
+
+            const urls = this.inputs.map(i => ({url: i.url}))
+
+            try {
+                const response = await axios.post('/api/url-mappings', {urls});
+            } catch (e) {
+                if (e.response && e.response.data) {
+                    this.updateErrors(e.response.data.errors);
+                } else {
+                    console.error(e);
+                }
+            }
+        },
+        updateErrors(errors) {
+            for (const input of this.inputs) {
+                input.errors = [];
+            }
+
+            for (const [key, violations] of Object.entries(errors)) {
+                const index = Number(key.match(/\d+/)[0]);
+                this.inputs[index].errors = violations;
+            }
         }
     }
 };
