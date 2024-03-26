@@ -22,6 +22,26 @@
                 Submit
             </button>
         </form>
+
+        <div v-if="results" class="mt-5">
+            <h3>Results</h3>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th>Long URL</th>
+                        <th>Short URL</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="result in results" :key="result.id">
+                        <td>{{ result.longUrl }}</td>
+                        <td>{{ result.shortUrl }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -29,7 +49,8 @@
 export default {
     data() {
         return {
-            inputs: [{ url: '' }]
+            inputs: [{ url: '' }],
+            results: null,
         };
     },
     computed: {
@@ -50,6 +71,10 @@ export default {
         },
         submitForm() {
             console.log(this.inputs);
+
+            this.results = this.inputs.map((u) => {
+                return {longUrl: u.url, shortUrl: '...'};
+            })
         }
     }
 };
