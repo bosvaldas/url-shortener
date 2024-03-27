@@ -22,8 +22,8 @@
                 <button class="btn btn-primary" type="button" @click="addInput">
                     Add URL
                 </button>
-                <button class="btn btn-success d-block mt-3" type="submit">
-                    Submit
+                <button class="btn btn-success d-block mt-3" type="submit" :disabled="loading">
+                    {{ loading ? '...' : 'Submit' }}
                 </button>
             </div>
         </form>
@@ -54,6 +54,7 @@
 export default {
     data() {
         return {
+            loading: false,
             inputs: [
                 { url: 'http://testsafebrowsing.appspot.com/apiv4/ANY_PLATFORM/SOCIAL_ENGINEERING/URL/' }, // Fake unsafe url
             ],
@@ -77,6 +78,12 @@ export default {
             this.inputs.splice(index, 1);
         },
         async submitForm() {
+            if (this.loading) {
+                return;
+            }
+
+            this.loading = true;
+
             const urls = this.inputs.map(i => ({url: i.url}))
 
             try {
@@ -90,6 +97,8 @@ export default {
                     console.error(e);
                 }
             }
+
+            this.loading = false;
         },
         removeErrors() {
             for (const input of this.inputs) {
