@@ -4,10 +4,19 @@ declare(strict_types=1);
 namespace App\Service\Url;
 
 use App\Models\UrlMapping;
+use App\Service\Url\LongUrlModifier\LongUrlModifier;
+use App\Service\Url\LongUrlModifier\PathInfo;
 use Illuminate\Support\Str;
 
 class UrlMapper
 {
+    private array $longUrlModifiers;
+
+    public function __construct(LongUrlModifier ...$longUrlModifiers)
+    {
+        $this->longUrlModifiers = $longUrlModifiers;
+    }
+
     public function mapUrls(array $longUrls): array
     {
         return array_map([$this, 'mapUrl'], $longUrls);
@@ -15,17 +24,30 @@ class UrlMapper
 
     private function mapUrl(string $longUrl): array
     {
-        $existingMapping = UrlMapping::where('long_url', $longUrl)->first();
+        $modifiedLongUrl = $this->modifyLongUrl($longUrl);
+
+        $existingMapping = UrlMapping::where('long_url', $modifiedLongUrl)->first();
         if ($existingMapping) {
             $hash = $existingMapping->hash;
         } else {
             $hash = $this->generateShortUrlHash();
-            UrlMapping::create(['hash' => $hash, 'long_url' => $longUrl]);
+            UrlMapping::create(['hash' => $hash, 'long_url' => $modifiedLongUrl]);
         }
 
         $shortUrl = $this->createShortUrl($hash);
 
         return ['longUrl' => $longUrl, 'shortUrl' => $shortUrl];
+    }
+
+    private function modifyLongUrl(string $longUrl): string
+    {
+        $pathInfo = PathInfo::fromUrl($longUrl);
+
+        foreach ($this->longUrlModifiers as $modifier) {
+            $pathInfo = $modifier->modify($pathInfo);
+        }
+
+        return (string)$pathInfo;
     }
 
     private function generateShortUrlHash(): string
